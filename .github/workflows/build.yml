@@ -1,0 +1,47 @@
+name: Build Workflow
+
+on:
+  push:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architechture: 'x64'
+      - name: Install requirements
+        run: |
+          python -m PyInstaller eye-rest-app.spec
+      - uses: actions/upload-artifact@v2
+        with:
+          name: EyeRest
+          path: dist/eye-rest-app.exe
+      
+      - name: create release
+        id: create_relase
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.head_commit.message }}
+          release_name: ${{ github.event.head_commit.message }}
+          overwrite: true
+          body: |
+            Release ${{ github.event.head_commit.message }}
+          draft: false
+          prerelase: false
+      - name:
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_relase.outputs.upload_url }}
+          asset_path: dist/eye-rest-app.exe
+          asset_name: Eye Rest.exe
+          asset_content_type: applications/zip
