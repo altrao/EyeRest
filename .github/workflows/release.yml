@@ -45,5 +45,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_relase.outputs.upload_url }}
           asset_path: dist/eye-rest-app.exe
-          asset_name: Eye Rest.exe
+          asset_name: Eye_Rest.exe
           asset_content_type: applications/zip
