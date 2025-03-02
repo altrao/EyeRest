@@ -1,7 +1,9 @@
-name: Build Workflow
+name: Create Release
 
 on:
   push:
+    tags: 
+      - v*
 
 jobs:
   build-windows:
@@ -23,21 +25,19 @@ jobs:
         with:
           name: EyeRest
           path: dist/eye-rest-app.exe
-      
       - name: create release
         id: create_relase
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event.head_commit.message }}
-          release_name: ${{ github.event.head_commit.message }}
-          overwrite: true
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
           body: |
             Release ${{ github.event.head_commit.message }}
           draft: false
-          prerelase: false
-      - name:
+          prerelease: false
+      - name: upload release
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
