@@ -14,3 +14,5 @@ This is a simple desktop application designed to remind you to take breaks from 
 4.  **Stop the Timer:** To stop the timer, you can either:
     *   Click the "Stop Timer" button in the main window.
     *   Right-click the system tray icon and select "Stop Timer."
+
+-- abcde
