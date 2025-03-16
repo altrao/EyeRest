@@ -19,6 +19,12 @@ WTS_SESSION_LOCK = 0x7
 WTS_SESSION_UNLOCK = 0x8
 NOTIFY_FOR_THIS_SESSION = 0
 
+# Power broadcast message
+WM_POWERBROADCAST = 0x0218
+PBT_APMSUSPEND = 0x0004
+PBT_APMRESUMEAUTOMATIC = 0x0012
+PBT_APMRESUMESUSPEND = 0x0007
+
 
 class EventListener:
     def __init__(self):
@@ -34,13 +40,21 @@ class EventListener:
     def _window_proc(self, hwnd, message, wparam, lparam):
         if message == WM_WTSSESSION_CHANGE:
             if wparam == WTS_SESSION_LOCK:
-                if self.callback_function:
-                    self.callback_function("lock")
+                self._callback("lock")
             elif wparam == WTS_SESSION_UNLOCK:
-                if self.callback_function:
-                    self.callback_function("unlock")
+                self._callback("unlock")
+        elif message == WM_POWERBROADCAST:
+            if wparam == PBT_APMSUSPEND:
+                self._callback("suspend")
+            elif wparam == PBT_APMRESUMEAUTOMATIC or wparam == PBT_APMRESUMESUSPEND:
+                self._callback("resume")
 
         return win32gui.DefWindowProc(hwnd, message, wparam, lparam)
+
+
+    def _callback(self, message):
+        if self.callback_function:
+            self.callback_function(message)
 
 
     def start(self, callback_function):
@@ -119,7 +133,6 @@ class EventListener:
 
     def stop(self):
         if (self._listen_thread):
-            self.active = False
             self._listen_thread.join(timeout=1)
             self._listen_thread = None
 

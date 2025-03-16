@@ -23,7 +23,7 @@ class EyeRestApp:
         self.root.geometry("400x350")
 
         self.root.resizable(False, False)
-        # self.root.iconbitmap(os.path.join(os.getcwd(), "icon.ico"))
+        self.root.iconbitmap("icon.ico")
 
         self.timer_running = False
         self.work_time = 20 * 60
@@ -120,8 +120,8 @@ class EyeRestApp:
         for window in self.break_windows:
             if window.winfo_exists():
                 window.destroy()
-        self.break_windows = []
 
+        self.break_windows = []
         self.countdown_threads = []
 
         logging.debug("Timer stopped")
@@ -139,14 +139,16 @@ class EyeRestApp:
             remaining_seconds = self.work_time
 
             while remaining_seconds > 0 and self.timer_running and not self.locked_event.is_set():
-                minutes, seconds = divmod(remaining_seconds, 60)
-                time_str = f"Next break in: {minutes:02d}:{seconds:02d}"
+                # do not update if on tray
+                if not self.tray_icon:
+                    minutes, seconds = divmod(remaining_seconds, 60)
+                    time_str = f"Next break in: {minutes:02d}:{seconds:02d}"
 
-                # Update label in the main thread
-                try:
-                    self.root.after(0, lambda s=time_str: self.time_label.config(text=s))
-                except tk.TclError:
-                    return
+                    # Update label in the main thread
+                    try:
+                        self.root.after(0, lambda s=time_str: self.time_label.config(text=s))
+                    except tk.TclError:
+                        return
 
                 time.sleep(1)
                 remaining_seconds -= 1
@@ -305,6 +307,12 @@ class EyeRestApp:
                 logging.debug("System event: Screen unlocked")
                 self.reset_timer()
                 self.locked_event.clear()
+            case "suspend":
+                logging.debug("System event: Screen suspended")
+                self.stop_timer()
+            case "resume":
+                logging.debug("System event: Screen resumed")
+                self.stop_timer()
 
 
     def exit_app(self, icon, item):
