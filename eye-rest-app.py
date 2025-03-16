@@ -10,6 +10,8 @@ from device_checker import are_peripherals_in_use
 from event_listener import EventListener
 from win_32_pystray_icon import Win32PystrayIcon
 import sys
+from window_checker import is_any_app_fullscreen
+
 
 logging.basicConfig(
     filename="eye-rest-app.log",
@@ -37,8 +39,6 @@ class EyeRestApp:
         self.stop_event = threading.Event()
         self.sleep_event = threading.Event()
         self.locked_event = threading.Event()
-
-        self.root.attributes("-topmost", True)
 
         self.event_listener = EventListener()
 
@@ -294,7 +294,7 @@ class EyeRestApp:
 
 
     def can_show_break(self):
-        return not(are_peripherals_in_use() or self.stop_event.is_set() or self.locked_event.is_set())
+        return not(are_peripherals_in_use() or self.stop_event.is_set() or self.locked_event.is_set() or is_any_app_fullscreen())
 
 
 ### System events
