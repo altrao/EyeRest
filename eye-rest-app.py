@@ -26,7 +26,7 @@ class EyeRestApp:
         self.root.geometry("400x350")
 
         self.root.resizable(False, False)
-        self.root.iconbitmap("icon.ico")
+        # self.root.iconbitmap("icon.ico")
 
         self.timer_running = False
         self.work_time = 20 * 60

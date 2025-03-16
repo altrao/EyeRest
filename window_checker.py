@@ -18,9 +18,6 @@ def is_any_app_fullscreen():
     monitor_width = monitor_rect[2] - monitor_rect[0]
     monitor_height = monitor_rect[3] - monitor_rect[1]
     
-    # placement = win32gui.GetWindowPlacement(foreground_window)
-    # is_maximized = placement[1] == win32con.SW_SHOWMAXIMIZED
-    
     # Check if the foreground window covers the entire monitor
     is_covering_screen = (window_width >= monitor_width and window_height >= monitor_height)
 
