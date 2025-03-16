@@ -8,7 +8,8 @@ import screeninfo
 import logging
 from device_checker import are_peripherals_in_use
 from event_listener import EventListener
-
+from win_32_pystray_icon import Win32PystrayIcon
+import sys
 
 logging.basicConfig(
     filename="eye-rest-app.log",
@@ -145,6 +146,7 @@ class EyeRestApp:
                 # Update label in the main thread
                 try:
                     self.root.after(0, lambda s=time_str: self.time_label.config(text=s))
+                    self.root.after(0, lambda s=time_str: self.update_tray_icon_title(s))
                 except tk.TclError:
                     return
 
@@ -262,12 +264,23 @@ class EyeRestApp:
             pystray.MenuItem("Stop Timer", self.stop_timer),
             pystray.MenuItem("Exit", self.exit_app)
         )
-        self.tray_icon = pystray.Icon("EyeRest", image, "Eye Rest", menu)
+        self.tray_icon = Win32PystrayIcon(
+            "EyeRest",
+            image,
+            "Eye Rest - Not started",
+            menu,
+            **{ 'on_double_click': lambda icon, _: self.open_window(icon) } if sys.platform == "win32" else {}
+        )
+
         self.tray_icon.run_detached()
 
 
-    def open_window(self):
+    def open_window(self, icon):
         self.root.after(0, self.root.deiconify)
+
+    def update_tray_icon_title(self, title):
+        if self.tray_icon:
+            self.tray_icon.title = f"Eye Rest - {title}"
 
 
     def on_closing(self):
