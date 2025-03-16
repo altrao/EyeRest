@@ -139,16 +139,14 @@ class EyeRestApp:
             remaining_seconds = self.work_time
 
             while remaining_seconds > 0 and self.timer_running and not self.locked_event.is_set():
-                # do not update if on tray
-                if not self.tray_icon:
-                    minutes, seconds = divmod(remaining_seconds, 60)
-                    time_str = f"Next break in: {minutes:02d}:{seconds:02d}"
+                minutes, seconds = divmod(remaining_seconds, 60)
+                time_str = f"Next break in: {minutes:02d}:{seconds:02d}"
 
-                    # Update label in the main thread
-                    try:
-                        self.root.after(0, lambda s=time_str: self.time_label.config(text=s))
-                    except tk.TclError:
-                        return
+                # Update label in the main thread
+                try:
+                    self.root.after(0, lambda s=time_str: self.time_label.config(text=s))
+                except tk.TclError:
+                    return
 
                 time.sleep(1)
                 remaining_seconds -= 1
