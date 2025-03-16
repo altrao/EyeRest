@@ -1,6 +1,6 @@
 import winreg
 
-def _check_device(device_key):
+def _is_device_busy(device_key):
     """Checks if a specific device (microphone or webcam) is in use."""
     try:
         i = 0
@@ -25,7 +25,7 @@ def _check_device(device_key):
         pass  # Key doesn't exist, assume not in use
     return False
 
-def check_device_usage():
+def are_peripherals_in_use():
     """Checks if microphone or webcam are in use by querying the Windows registry.
 
     Returns:
@@ -35,4 +35,4 @@ def check_device_usage():
     microphone_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\NonPackaged")
     webcam_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam\NonPackaged")
 
-    return _check_device(microphone_key) or _check_device(webcam_key)
+    return _is_device_busy(microphone_key) or _is_device_busy(webcam_key)
