@@ -137,11 +137,8 @@ class EyeRestApp:
     def timer_function(self):
         while self.timer_running:
             remaining_seconds = self.work_time
-            print(f"Remaining seconds: {remaining_seconds} | Timer running: {self.timer_running} | Stop event: {self.stop_event.is_set()} | Locked event: {self.locked_event.is_set()}")
 
             while remaining_seconds > 0 and self.timer_running and not self.locked_event.is_set():
-                print(f"Remaining seconds: {remaining_seconds} | Timer running: {self.timer_running} | Stop event: {self.stop_event.is_set()} | Locked event: {self.locked_event.is_set()}")
-
                 minutes, seconds = divmod(remaining_seconds, 60)
                 time_str = f"Next break in: {minutes:02d}:{seconds:02d}"
 
