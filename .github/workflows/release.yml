@@ -41,10 +41,8 @@ jobs:
           PREVIOUS_TAG=${{ steps.previous_tag.outputs.previous_tag }}
 
           if [[ -z "$PREVIOUS_TAG" ]]; then
-            # If no previous tag, get all commits up to the current tag
             LOG=$(git log --pretty=format:"- %s (%h)" $TAG)
           else
-            # If a previous tag exists, get commits between the two tags
             LOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..$TAG)
           fi
 
@@ -76,3 +74,12 @@ jobs:
           asset_path: dist/eye-rest-app.exe
           asset_name: Eye_Rest.exe
           asset_content_type: applications/zip
+      - name: Create tag commit
+        if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }} #prevent infinite loops
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git checkout main #or your main branch
+          git add . #or any other files you want to add.
+          git commit -m "chore(release): ${{ github.ref }}"
+          git push origin main
