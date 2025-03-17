@@ -1,15 +1,19 @@
-import tkinter as tk
-import time
-import threading
-from tkinter import messagebox
-import pystray
-from PIL import Image, ImageDraw
-import screeninfo
 import logging
+import pystray
+import screeninfo
+import sys
+import threading
+import time
+import time
+import tkinter as tk
+import win32con
+import win32gui
+
+from PIL import Image, ImageDraw
 from device_checker import are_peripherals_in_use
 from event_listener import EventListener
+from tkinter import messagebox
 from win_32_pystray_icon import Win32PystrayIcon
-import sys
 from window_checker import is_any_app_fullscreen
 
 
@@ -157,6 +161,8 @@ class EyeRestApp:
                 break
 
             if self.can_show_break():
+                self.stop_event.clear()
+
                 try:
                     self.root.after(0, self.show_break_screens)
                 except tk.TclError:
@@ -173,7 +179,6 @@ class EyeRestApp:
                             return
 
                 self.break_windows = []
-                self.stop_event.set()
                 self.countdown_threads = []
 
                 logging.debug("Break completed")
@@ -183,19 +188,20 @@ class EyeRestApp:
 
 
     def countdown_function(self, label, window):
-        logging.debug("Countdown thread started")
+        try:
+            for i in range(self.rest_time, 0, -1):
+                if self.stop_event.is_set():
+                    break
 
-        for i in range(self.rest_time, 0, -1):
-            if self.stop_event.is_set() or not self.timer_running or self.locked_event.is_set() or window is None or not window.winfo_exists():
-                break
-            try:
-                window.after(0, lambda t=str(i): label.config(text=t))
-            except tk.TclError:
-                return
+                try:
+                    window.update()
+                    label.configure(text=str(i))
+                except Exception:
+                    break
 
-            time.sleep(1)
-            
-        logging.debug("Countdown thread finished")
+                time.sleep(1)
+        except Exception as e:
+            logging.error(f"Error in countdown: {e}")
 
 
     def reset_timer(self):
@@ -207,40 +213,51 @@ class EyeRestApp:
 
     def show_break_screens(self):
         monitors = screeninfo.get_monitors()
+        logging.debug(f"Showing break screens. Found {len(monitors)} monitors.")
 
-        logging.debug(f"Showing break screens. Found {len(monitors)} monitors. Total threads: {threading.active_count()}")
+        for i, monitor in enumerate(monitors):
+            window_title = f"Eye Rest Time! - Monitor {i}"
 
-        for monitor in monitors:
             break_window = tk.Toplevel(self.root)
-            break_window.title("Eye Rest Time!")
-            break_window.attributes("-topmost", True)
-
-            break_window.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
-            break_window.attributes("-fullscreen", True)
-
+            break_window.title(window_title)
             break_window.configure(bg="#3498db")
-
             minutes, seconds = divmod(self.rest_time, 60)
 
             rest_label = tk.Label(break_window,
-                                  text=f"REST YOUR EYES\n\nLook away from the screen\nFocus on something 20 feet away\n\nClosing in {minutes:02d}m{seconds:02d}s...",
-                                  font=("Arial", 24, "bold"),
-                                  bg="#3498db", fg="white")
+                                text=f"REST YOUR EYES\n\nLook away from the screen\nFocus on something 20 feet away\n\nClosing in {minutes:02d}m{seconds:02d}s...",
+                                font=("Arial", 24, "bold"), bg="#3498db", fg="white")
             rest_label.pack(expand=True)
 
-            # Add countdown display
             countdown_label = tk.Label(break_window, text=str(self.rest_time), font=("Arial", 48, "bold"),
-                                       bg="#3498db", fg="white")
+                                    bg="#3498db", fg="white")
             countdown_label.pack(expand=True)
 
-            # Start countdown in a separate thread
+            break_window.update()
+
+            hwnd = win32gui.FindWindow(None, window_title)
+
+            if hwnd:
+                # Set window style for full screen (no borders)
+                style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
+                win32gui.SetWindowLong(hwnd, win32con.GWL_STYLE, style & ~(win32con.WS_CAPTION | win32con.WS_THICKFRAME))
+
+                # Move to the correct monitor and resize
+                win32gui.SetWindowPos(
+                    hwnd,
+                    win32con.HWND_TOPMOST,
+                    monitor.x, monitor.y,
+                    monitor.width, monitor.height,
+                    win32con.SWP_SHOWWINDOW
+                )
+            else:
+                logging.error(f"Could not find window with title: {window_title}")
+
             countdown_thread = threading.Thread(target=self.countdown_function, args=(countdown_label, break_window,))
             countdown_thread.daemon = True
             countdown_thread.start()
-            self.countdown_threads.append(countdown_thread)
-            logging.debug(f"Countdown thread started for monitor {monitor.name}. Total threads: {threading.active_count()}")
 
             self.break_windows.append(break_window)
+            self.countdown_threads.append(countdown_thread)
 
 
     def create_icon_image(self):
@@ -294,7 +311,12 @@ class EyeRestApp:
 
 
     def can_show_break(self):
-        return not(are_peripherals_in_use() or self.stop_event.is_set() or self.locked_event.is_set() or is_any_app_fullscreen())
+        peripherals_in_use = are_peripherals_in_use()
+        full_screen = is_any_app_fullscreen()
+
+        logging.debug(f"Peripherals in use: {peripherals_in_use}, Any app in full screen: {full_screen}, Stop event: {self.stop_event.is_set()}, Locked event: {self.locked_event.is_set()}, Timer running: {self.timer_running}")
+
+        return not(peripherals_in_use or self.stop_event.is_set() or self.locked_event.is_set() or full_screen)
 
 
 ### System events

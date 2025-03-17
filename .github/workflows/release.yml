@@ -2,7 +2,7 @@ name: Create Release
 
 on:
   push:
-    tags: 
+    tags:
       - v*
 
 jobs:
@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
       - name: Install Python
         uses: actions/setup-python@v1
         with:
@@ -25,8 +27,33 @@ jobs:
         with:
           name: EyeRest
           path: dist/eye-rest-app.exe
-      - name: create release
-        id: create_relase
+      - name: Get previous tag
+        id: previous_tag
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 $(git describe --tags --abbrev=0)^)
+          echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+        shell: bash
+        continue-on-error: true
+      - name: Get commit log
+        id: commit_log
+        run: |
+          TAG=${{ github.ref }}
+          PREVIOUS_TAG=${{ steps.previous_tag.outputs.previous_tag }}
+
+          if [[ -z "$PREVIOUS_TAG" ]]; then
+            # If no previous tag, get all commits up to the current tag
+            LOG=$(git log --pretty=format:"- %s (%h)" $TAG)
+          else
+            # If a previous tag exists, get commits between the two tags
+            LOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..$TAG)
+          fi
+
+          echo "commit_log<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Create release
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -35,15 +62,17 @@ jobs:
           release_name: ${{ github.ref }}
           body: |
             Release ${{ github.event.head_commit.message }}
+
+            ${{ steps.commit_log.outputs.commit_log }}
           draft: false
           prerelease: false
-      - name: upload release
+      - name: Upload release asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_relase.outputs.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/eye-rest-app.exe
           asset_name: Eye_Rest.exe
           asset_content_type: applications/zip
