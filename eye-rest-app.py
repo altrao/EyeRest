@@ -9,13 +9,14 @@ import tkinter as tk
 import win32con
 import win32gui
 
-from enum import Enum
+from config import OnComputerSleepOption
 from PIL import Image, ImageDraw
 from device_checker import are_peripherals_in_use
 from event_listener import EventListener
 from tkinter import messagebox
 from win_32_pystray_icon import Win32PystrayIcon
 from window_checker import is_any_app_fullscreen
+import config
 
 
 logging.basicConfig(
@@ -24,10 +25,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-
-class OnComputerSleepOption(Enum):
-    STOP_TIMER = "Stop timer"
-    RESET_TIMER = "Reset timer"
 
 class EyeRestApp:
     def __init__(self, root):
@@ -49,7 +46,7 @@ class EyeRestApp:
         self.stop_event = threading.Event()
         self.sleep_event = threading.Event()
         self.locked_event = threading.Event()
-        self.on_computer_sleep_option = OnComputerSleepOption.RESET_TIMER
+        self.on_computer_sleep_option = config.load_config()
         self.event_listener = EventListener()
 
         # Create the UI
@@ -315,6 +312,7 @@ class EyeRestApp:
 
     def set_option(self, option):
         self.on_computer_sleep_option = option
+        config.save_config(option)
         logging.debug(f"On computer sleep option set to: {option.value}")
 
 
