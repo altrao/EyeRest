@@ -9,6 +9,7 @@ import tkinter as tk
 import win32con
 import win32gui
 
+from enum import Enum
 from PIL import Image, ImageDraw
 from device_checker import are_peripherals_in_use
 from event_listener import EventListener
@@ -22,6 +23,11 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+
+class OnComputerSleepOption(Enum):
+    STOP_TIMER = "Stop timer"
+    RESET_TIMER = "Reset timer"
 
 class EyeRestApp:
     def __init__(self, root):
@@ -43,7 +49,7 @@ class EyeRestApp:
         self.stop_event = threading.Event()
         self.sleep_event = threading.Event()
         self.locked_event = threading.Event()
-
+        self.on_computer_sleep_option = OnComputerSleepOption.RESET_TIMER
         self.event_listener = EventListener()
 
         # Create the UI
@@ -276,11 +282,26 @@ class EyeRestApp:
 
     def create_tray_icon(self):
         image = self.create_icon_image()
+        config_menu = pystray.Menu(
+            pystray.MenuItem(
+                OnComputerSleepOption.STOP_TIMER.value,
+                action=lambda item: self.set_option(OnComputerSleepOption.STOP_TIMER),
+                radio=True,
+                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.STOP_TIMER),
+            pystray.MenuItem(
+                OnComputerSleepOption.RESET_TIMER.value,
+                action=lambda item: self.set_option(OnComputerSleepOption.RESET_TIMER),
+                radio=True,
+                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.RESET_TIMER),
+        )
+
         menu = (
             pystray.MenuItem("Open", self.open_window),
+            pystray.MenuItem("Config", action=config_menu),
             pystray.MenuItem("Stop Timer", self.stop_timer),
             pystray.MenuItem("Exit", self.exit_app)
         )
+
         self.tray_icon = Win32PystrayIcon(
             "EyeRest",
             image,
@@ -290,6 +311,11 @@ class EyeRestApp:
         )
 
         self.tray_icon.run_detached()
+
+
+    def set_option(self, option):
+        self.on_computer_sleep_option = option
+        logging.debug(f"On computer sleep option set to: {option.value}")
 
 
     def open_window(self, icon):
@@ -319,7 +345,7 @@ class EyeRestApp:
         return not(peripherals_in_use or self.stop_event.is_set() or self.locked_event.is_set() or full_screen)
 
 
-### System events
+### Events
 
     def setup_system_events(self):
         self.event_listener.start(self.handle_system_event)
@@ -342,10 +368,23 @@ class EyeRestApp:
                 self.locked_event.clear()
             case "suspend":
                 logging.debug("System event: Screen suspended")
-                self.stop_timer()
+                self.handle_sleep()
             case "resume":
                 logging.debug("System event: Screen resumed")
-                self.stop_timer()
+                self.handle_sleep()
+
+
+    def handle_sleep(self):
+        """
+        The action is the same for both events, just in case.
+        """
+
+        if self.on_computer_sleep_option == OnComputerSleepOption.STOP_TIMER:
+            self.stop_timer()
+            logging.debug("Action: Stop timer")
+        elif self.on_computer_sleep_option == OnComputerSleepOption.RESET_TIMER:
+            self.reset_timer()
+            logging.debug("Action: Reset timer")
 
 
     def exit_app(self, icon, item):
