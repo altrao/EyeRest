@@ -29,7 +29,6 @@ logging.basicConfig(
 class EyeRestApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Eye Rest Timer")
         self.root.geometry("400x350")
 
         self.root.resizable(False, False)
@@ -400,8 +399,18 @@ class EyeRestApp:
 
 def main():
     root = tk.Tk()
-    EyeRestApp(root)
-    root.mainloop()
+
+    window_title = "Eye Rest Timer"
+    existing_window = win32gui.FindWindow(None, window_title)
+
+    if existing_window:
+        win32gui.ShowWindow(existing_window, win32con.SW_SHOWNORMAL)
+        win32gui.SetForegroundWindow(existing_window)
+        logging.debug("Existing instance found, bringing to front.")
+    else:
+        root.title(window_title)
+        EyeRestApp(root)
+        root.mainloop()
 
 
 if __name__ == "__main__":
