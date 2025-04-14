@@ -85,6 +85,7 @@ class EyeRestApp:
         self.stop_button.config(state=tk.DISABLED)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.create_tray_icon()
 
 
 ### Timer management
@@ -109,11 +110,18 @@ class EyeRestApp:
         self.timer_thread.daemon = True
         self.timer_thread.start()
 
-        logging.info(f"Timer started")
+        logging.debug(f"Timer started")
 
         self.root.withdraw()
-        self.create_tray_icon()
         self.setup_system_events()
+        self.tray_icon.update_menu()
+
+
+    def handle_tray_timer_button(self):
+        if self.timer_running:
+            self.stop_timer()
+        else:
+            self.start_timer()
 
 
     def stop_timer(self):
@@ -133,12 +141,10 @@ class EyeRestApp:
 
         logging.debug("Timer stopped")
 
-        if self.tray_icon:
-            self.tray_icon.stop()
-            self.tray_icon = None
+        self.root.after(0, lambda: self.unregister_system_events())
 
-        self.unregister_system_events()
-        self.root.deiconify()
+        self.update_tray_icon_title("Not started")
+        self.tray_icon.update_menu()
 
 
     def timer_function(self):
@@ -294,7 +300,7 @@ class EyeRestApp:
         menu = (
             pystray.MenuItem("Open", self.open_window),
             pystray.MenuItem("Config", action=config_menu),
-            pystray.MenuItem("Stop Timer", self.stop_timer),
+            pystray.MenuItem(lambda _: "Stop Timer" if self.timer_running else "Start Timer", self.handle_tray_timer_button),
             pystray.MenuItem("Exit", self.exit_app)
         )
 
