@@ -2,7 +2,12 @@
 venv
 __pycache__
 pyvenv.cfg
-build/
+/build/dist/
+/build/EyeRestSetup.exe
+/build/eye-rest-app/
+/build/nsis/
+/build/LICENSE.txt
+/build/icon.ico
 dist
 *.log
 
@@ -20,7 +25,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
