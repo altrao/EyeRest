@@ -330,13 +330,7 @@ class EyeRestApp:
 
 
     def on_closing(self):
-        if self.timer_running:
-            self.stop_timer()
-
-        self.unregister_system_events()
-        self.root.destroy()
-
-        logging.debug("Window closing")
+        self.root.withdraw()
 
 
     def can_show_break(self):
@@ -399,7 +393,7 @@ class EyeRestApp:
 
         self.unregister_system_events()
         self.root.after(0, lambda: self.root.destroy())
-        logging.info(f"Exiting app")
+        logging.debug(f"Exiting app")
 
 
 
