@@ -4,7 +4,6 @@ import screeninfo
 import sys
 import threading
 import time
-import time
 import tkinter as tk
 import win32con
 import win32gui
@@ -32,7 +31,7 @@ class EyeRestApp:
         self.root.geometry("400x350")
 
         self.root.resizable(False, False)
-        # self.root.iconbitmap("icon.ico")
+        self.root.iconbitmap("icon.ico")
 
         self.timer_running = False
         self.work_time = 20 * 60
