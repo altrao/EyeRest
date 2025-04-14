@@ -10,35 +10,30 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4
       - name: Install Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10.11'
+          python-version: '3.10'
       - name: Install requirements
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Install NSIS
+        run: choco install nsis -y
       - name: Build application
+        shell: cmd
         run: |
-          python -m PyInstaller eye-rest-app.spec
-      - uses: actions/upload-artifact@v4
-        with:
-          name: EyeRest
-          path: dist/eye-rest-app.exe
-      - name: Get previous tag
-        id: previous_tag
+          python -m PyInstaller --noconfirm --clean --distpath=build/dist eye-rest-app.spec
+      - name: Build installer
+        shell: cmd
         run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 $(git describe --tags --abbrev=0)^)
-          echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-        shell: bash
-        continue-on-error: true
+          makensis build\installer.nsi
       - name: Get commit log
         id: commit_log
         run: |
           TAG=${{ github.ref }}
-          PREVIOUS_TAG=${{ steps.previous_tag.outputs.previous_tag }}
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1))
 
           if [[ -z "$PREVIOUS_TAG" ]]; then
             LOG=$(git log --pretty=format:"- %s (%h)" $TAG)
@@ -71,15 +66,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/eye-rest-app.exe
-          asset_name: Eye_Rest.exe
+          asset_path: build/EyeRestSetup.exe
+          asset_name: EyeRest_Setup.exe
           asset_content_type: applications/zip
-      - name: Create tag commit
-        if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }} #prevent infinite loops
-        run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git checkout main #or your main branch
-          git add . #or any other files you want to add.
-          git commit -m "chore(release): ${{ github.ref }}"
-          git push origin main

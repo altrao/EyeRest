@@ -5,24 +5,33 @@ a = Analysis(
     ['eye-rest-app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('icon.ico', '.'),
+        ('config.py', '.'),
+        ('device_checker.py', '.'),
+        ('event_listener.py', '.'),
+        ('win_32_pystray_icon.py', '.'),
+        ('window_checker.py', '.')
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
     noarchive=False,
-    optimize=0,
 )
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure, a.zipped_data)
 
 exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
+    a.zipfiles,
     a.datas,
     [],
-    name='eye-rest-app',
+    name='EyeRest',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -35,5 +44,16 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icon.ico'],
+    icon='icon.ico',
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='EyeRest',
 )
