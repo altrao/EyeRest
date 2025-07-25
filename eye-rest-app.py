@@ -1,4 +1,5 @@
 import logging
+import os
 import pystray
 import screeninfo
 import sys
@@ -7,6 +8,7 @@ import time
 import tkinter as tk
 import win32con
 import win32gui
+import winreg
 
 from config import OnComputerSleepOption
 from PIL import Image, ImageDraw
@@ -24,6 +26,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
+WINREG_RUN_NAME = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 class EyeRestApp:
     def __init__(self, root):
@@ -31,7 +34,12 @@ class EyeRestApp:
         self.root.geometry("400x350")
 
         self.root.resizable(False, False)
-        self.root.iconbitmap("icon.ico")
+        base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+        icon_path = os.path.join(base_path, "icon.ico")
+        self.root.iconbitmap(icon_path)
+
+        logging.info("BASE PATH: %s", base_path)
+        logging.info("ICON PATH: %s", icon_path)
 
         self.timer_running = False
         self.work_time = 20 * 60
@@ -288,12 +296,19 @@ class EyeRestApp:
                 OnComputerSleepOption.STOP_TIMER.value,
                 action=lambda item: self.set_option(OnComputerSleepOption.STOP_TIMER),
                 radio=True,
-                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.STOP_TIMER),
+                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.STOP_TIMER
+            ),
             pystray.MenuItem(
                 OnComputerSleepOption.RESET_TIMER.value,
                 action=lambda item: self.set_option(OnComputerSleepOption.RESET_TIMER),
                 radio=True,
-                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.RESET_TIMER),
+                checked=lambda item: self.on_computer_sleep_option == OnComputerSleepOption.RESET_TIMER
+            ),
+            pystray.MenuItem(
+                "Start with Windows",
+                action=lambda item: self.toggle_startup(),
+                checked=lambda item: self.get_startup_status()
+            ),
         )
 
         menu = (
@@ -393,6 +408,41 @@ class EyeRestApp:
         self.unregister_system_events()
         self.root.after(0, lambda: self.root.destroy())
         logging.debug(f"Exiting app")
+
+
+    def get_startup_status(self):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, WINREG_RUN_NAME)
+            value, _ = winreg.QueryValueEx(key, "EyeRest")
+            logging.info(f"Startup status: {value}")
+            winreg.CloseKey(key)
+            return True
+        except WindowsError:
+            logging.error("Startup entry not found.")
+            return False
+        finally:
+            try:
+                winreg.CloseKey(key)
+            except UnboundLocalError:
+                pass
+
+
+    def toggle_startup(self):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, WINREG_RUN_NAME, 0, winreg.KEY_SET_VALUE)
+
+            if self.get_startup_status():
+                winreg.DeleteValue(key, "EyeRest")
+            else:
+                winreg.SetValueEx(key, "EyeRest", 0, winreg.REG_SZ, f"{sys.executable} \"{sys.argv[0]}\"")
+            winreg.CloseKey(key)
+        except WindowsError as e:
+            logging.error(f"Error modifying startup: {e}")
+        finally:
+            try:
+                winreg.CloseKey(key)
+            except UnboundLocalError:
+                pass
 
 
 
